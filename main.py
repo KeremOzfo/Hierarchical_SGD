@@ -18,7 +18,7 @@ if __name__ == '__main__':
        print(arg, ':', getattr(args, arg))
     x = datetime.datetime.now()
     date = x.strftime('%b') + '-' + str(x.day)
-    newFile = date + '-sim_ID-' + str(simulation_ID)
+    newFile = date + '-Hierarchical_FL-SlowMo_{}-Workers_{}-clusters_{}'.format(args.SlowMo,args.num_client,args.num_cluster)
     if not os.path.exists(os.getcwd() + '/Results'):
         os.mkdir(os.getcwd() + '/Results')
     n_path = os.path.join(os.getcwd(), 'Results', newFile)
@@ -34,7 +34,7 @@ if __name__ == '__main__':
                 f.write(line + '\n')
             f.write('############ Results ###############' + '\n')
             f.close()
-        s_loc = 'Hierarchical_FL-Workers_{}-clusters_{}_{}'
+        s_loc = 'Hierarchical_FL-SlowMo_{}-Workers_{}-clusters_{}_{}'.format(args.SlowMo,args.num_client,args.num_cluster,i)
         s_loc = os.path.join(n_path,s_loc)
         np.save(s_loc,accs)
         f = open(n_path + '/simulation_Details.txt', 'a+')

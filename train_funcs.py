@@ -47,9 +47,10 @@ def train(args, device):
     M_clusters = [get_net(args).to(device) for u in range(args.num_cluster)]
     [sf.initialize_zero(M_vals) for M_vals in M_clusters]
 
-    optimizers = [torch.optim.SGD(net_users[cl].parameters(), lr=args.lr, weight_decay=1e-4) for cl in
-                  range(num_client)]
-    schedulers = [torch.optim.lr_scheduler.MultiStepLR(optimizers[cl], milestones=args.lr_change, gamma=0.1) for cl in range(num_client)]
+    optimizers = [torch.optim.SGD(net_users[cl].parameters(), lr=args.lr, weight_decay=1e-4)
+                  for cl in range(num_client)]
+    schedulers = [torch.optim.lr_scheduler.MultiStepLR(optimizers[cl], milestones=args.lr_change, gamma=0.1)
+                  for cl in range(num_client)]
 
     criterions = [nn.CrossEntropyLoss() for u in range(num_client)]
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.bs, shuffle=False, num_workers=2)
@@ -67,7 +68,8 @@ def train(args, device):
     accuracys.append(acc * 100)
     assert N_s/num_client > args.LocalIter * args.bs
     assert num_client % args.num_cluster == 0
-    worker_per_cluster = int(num_client/args.num_cluster)
+    W_P_C = int(num_client/args.num_cluster) ## workers per cluster
+    tau = 0
     for epoch in tqdm(range(args.num_epoch)):
         atWarmup = (args.warmUp and epoch < 5)
         if atWarmup:
@@ -90,16 +92,16 @@ def train(args, device):
                     localIter +=1
                     if localIter == args.LocalIter:
                         break
-            sf.initialize_zero(net_ps)
+            tau +=1
             lr = sf.get_LR(optimizers[0])
             for i,cluster_model in enumerate(net_clusters):
-                start = i * worker_per_cluster
+                start = i * W_P_C
                 if args.SlowMo:
                     flattened_cluster = sf.get_model_flattened(cluster_model, device)
                     flattened_momentum = sf.get_model_flattened(M_clusters[i],device)
                     avg_model = torch.zeros_like(flattened_cluster).to(device)
-                    for model in net_users[start:start+worker_per_cluster]:
-                        avg_model.add_(1/worker_per_cluster
+                    for model in net_users[start:start+W_P_C]:
+                        avg_model.add_(1/W_P_C
                                        ,sf.get_model_flattened(model,device))
                     psuedo_grad = flattened_cluster.sub(1,avg_model)
                     psuedo_grad.mul_(1/lr)
@@ -110,16 +112,25 @@ def train(args, device):
 
                 else:
                     sf.initialize_zero(cluster_model)
-                    sf.push_models(net_users[start: start+worker_per_cluster],
-                                   cluster_model,worker_per_cluster)
-                sf.push_model(cluster_model,net_ps,args.num_cluster)
-            [sf.pull_model(client,net_ps) for client in net_users]
+                    sf.push_models(net_users[start: start+W_P_C],
+                                   cluster_model,W_P_C)
+
+                if tau == args.tau:
+                    if i ==0:
+                        sf.initialize_zero(net_ps)
+                    sf.push_model(cluster_model,net_ps,args.num_cluster)
+                else:
+                    [sf.pull_model(client, cluster_model) for client in net_users[start:start+W_P_C]]
+            if tau == args.tau:
+                [sf.pull_model(client,net_ps) for client in net_users]
+                [sf.pull_model(cluster, net_ps) for cluster in net_clusters]
+                tau = 0
 
 
         acc = evaluate_accuracy(net_ps, testloader, device)
         accuracys.append(acc * 100)
         print('accuracy:{}'.format(acc*100))
-        if not atWarmup:
+        if args.LR_decay:
             [schedulers[cl].step() for cl in range(num_client)] ## adjust Learning rate
     return accuracys
 
