@@ -116,7 +116,7 @@ def train(args, device):
                                    cluster_model,W_P_C)
 
                 if tau == args.tau:
-                    if i ==0:
+                    if i == 0:
                         sf.initialize_zero(net_ps)
                     sf.push_model(cluster_model,net_ps,args.num_cluster)
                 else:
