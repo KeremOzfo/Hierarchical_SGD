@@ -154,6 +154,17 @@ def make_sparse_grad(grad_flat, sparsity_window, device):
 
     return None
 
+def sparsify(model_flat, args, device):
+    sparsity = math.ceil(model_flat.numel() / args.sparsity)
+
+    vals,inds = torch.topk(model_flat.abs(),k=sparsity,dim=0)
+    mask = torch.zeros_like(model_flat).to(device)
+    mask[inds] = 1
+    sparsed_model = model_flat.mul(mask)
+    error = model_flat.sub(1,sparsed_model)
+
+    return sparsed_model, error
+
 
 def adjust_learning_rate(optimizer, epoch, lr_change, lr):
     lr_change = np.asarray(lr_change)

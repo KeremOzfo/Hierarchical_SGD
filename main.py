@@ -23,7 +23,10 @@ if __name__ == '__main__':
         os.mkdir(os.getcwd() + '/Results')
     n_path = os.path.join(os.getcwd(), 'Results', newFile)
     for i in range(5):
-        accs = train(args, device)
+        if args.sparse:
+            accs = train_sparse(args,device)
+        else:
+            accs = train(args, device)
         if i == 0:
             os.mkdir(n_path)
             f = open(n_path + '/simulation_Details.txt', 'w+')
@@ -34,7 +37,7 @@ if __name__ == '__main__':
                 f.write(line + '\n')
             f.write('############ Results ###############' + '\n')
             f.close()
-        s_loc = 'Hierarchical_FL-SlowMo_{}-Workers_{}-clusters_{}_{}'.format(args.SlowMo,args.num_client,args.num_cluster,i)
+        s_loc = 'Hierarchical_FL-Sparse_{}-SlowMo_{}-Workers_{}-clusters_{}_{}'.format(args.sparse,args.SlowMo,args.num_client,args.num_cluster,i)
         s_loc = os.path.join(n_path,s_loc)
         np.save(s_loc,accs)
         f = open(n_path + '/simulation_Details.txt', 'a+')

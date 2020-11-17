@@ -18,6 +18,8 @@ def args_parser():
     parser.add_argument('--num_epoch', type=int, default=300, help='number of epochs')
     parser.add_argument('--LocalIter', type=int, default=4, help='communication workers')
     parser.add_argument('--SlowMo', type=bool, default=True, help='train with slowmo')
+    parser.add_argument('--sparse', type=bool, default=True, help='run alg3')
+    parser.add_argument('--sparsity', type=int, default=100, help='sparsity value')
     parser.add_argument('--alfa', type=float, default=1, help='slowmo param')
     parser.add_argument('--beta', type=float, default=0.8, help='slowmo param')
     parser.add_argument('--tau', type=int, default=4, help='intrecluster param')
